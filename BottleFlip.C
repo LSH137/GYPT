@@ -101,9 +101,7 @@ public:
     }
     ~Bottle()
     {
-        //delete[] path_cm;
-        //delete[] path_top;
-        //delete[] w;
+    
     }
 
     Vector v_cm_i; // inital velocitu of center of mass
@@ -159,22 +157,6 @@ public:
         else
             printf("ERROR: location: Bottle > setW() - overflow error\n");
 
-    }
-
-    double getMinY()
-    {
-        Vector* path_temp_top = new Vector[MAX_DATA_LENGTH];
-        double min_y = 0.0;
-
-        for(int i = 0; i < MAX_DATA_LENGTH; i++)
-            path_temp_top[i] = path_top[i];
-        
-        std::sort(path_temp_top, path_temp_top + MAX_DATA_LENGTH, compare_by_y);
-        min_y = path_temp_top[0].y;
-
-        delete[] path_temp_top;
-
-        return min_y;
     }
 
     void resetBottle()
@@ -246,7 +228,6 @@ Vector getVelocity(Vector* path, int length)
     {
         trace_cm_x->SetPoint(trace_cm_x->GetN(), path[i].t, path[i].x);
         trace_cm_y->SetPoint(trace_cm_y->GetN(), path[i].t, path[i].y);
-        //printf("path_cm = %lf: (%lf, %lf)\n", path[i].t, path[i].x, path[i].y);
     }
 
     trace_cm_x->Fit(path_x_t, "M");
@@ -278,7 +259,6 @@ Bottle errorCorrection(Bottle bottle)
         corrected_vector.t = (bottle.path_top[i].t + bottle.path_top[i+1].t) / 2.0;
         corrected_vector.x = (bottle.path_top[i].x + bottle.path_top[i+1].x) / 2.0;
         corrected_vector.y = (bottle.path_top[i].y + bottle.path_top[i+1].y) / 2.0;
-        //corrected_vector.print();
         corrected_bottle.setPath_top(corrected_vector);
     }
 
@@ -288,7 +268,6 @@ Bottle errorCorrection(Bottle bottle)
         corrected_vector.t = (bottle.path_bottom[i].t + bottle.path_bottom[i+1].t) / 2.0;
         corrected_vector.x = (bottle.path_bottom[i].x + bottle.path_bottom[i+1].x) / 2.0;
         corrected_vector.y = (bottle.path_bottom[i].y + bottle.path_bottom[i+1].y) / 2.0;
-        //corrected_vector.print();
         corrected_bottle.setPath_bottom(corrected_vector);
     }
 
@@ -319,7 +298,6 @@ double x = 0.0;
 double y = 0.0;
 double dt = 0.0;
 double t = 0.0;
-double min_y = 0.0;
 char graph_name[250];
 char file_name[250] = {"rectangular_fail"};
 char path[250];
@@ -345,9 +323,6 @@ void BottleFlip()
         graph_w[i] = new TGraph();
         mg[i] = new TMultiGraph();
     }
-    // TGraph* graph_top = new TGraph();  // graph object for ploting bottle top
-    // TGraph* graph_bottom = new TGraph();  // graph object for ploting bottle bottom
-    // TGraph* graph_cm[experiment_no] = new TGraph();  // graph object for ploting center of mass
 
     auto c_w = new TCanvas("angular_velocity","angular_velocity",800, 600);
     auto c_path = new TCanvas("path_of_bottle","path_of_bottle",800, 600);
@@ -373,15 +348,9 @@ void BottleFlip()
             //top.x = (-1.0) * top.x;
             //bottom.x = (-1.0) * bottom.x;
             
-            //printf("input: %lf,%lf,%lf,%lf,%lf,%lf\n", top.t, top.x, top.y, bottom.t, bottom.x, bottom.y);
             
             if(abs(top.t + 100000.0) < 0.1 || abs(top.x + 100000.0) < 0.1 || abs(top.y + 100000.0) < 0.1)
             {
-                // TMultiGraph* mg = new TMultiGraph();
-                // graph_top[experiment_no] = new TGraph();  // graph object for ploting bottle top
-                // graph_bottom[experiment_no] = new TGraph();  // graph object for ploting bottle bottom
-                // graph_cm[experiment_no] = new TGraph();  // graph object for ploting center of mass
-                
                 bottle = errorCorrection(bottle_raw);
 
                 for(int i = 0; i < bottle.getIndexPath_top(); i++)
@@ -389,35 +358,24 @@ void BottleFlip()
                 
                 for(int i = 0; i < bottle.getIndexPath_bottom(); i++)
                     graph_bottom[experiment_no]->SetPoint(graph_bottom[experiment_no]->GetN(), bottle.path_bottom[i].x, bottle.path_bottom[i].y);
-
-                //printf("getIndexPath_bottom: %d\n", bottle.getIndexPath_bottom());
+                
                 for(int i = 0; i < bottle.getIndexPath_bottom(); i++)  // get path of cm from first (INITAL_FRAME_NUMBER) frame
                     bottle.setPath_cm(getInternalDivision(bottle.path_top[i], bottle.path_bottom[i]));
-                   //bottle.path_cm[i] =;
                               
                 bottle.r_cm_i = bottle.path_cm[bottle.getIndexPath_cm() - 1]; // set inital position of center of mass
                 bottle.v_cm_i = getVelocity(bottle.path_cm, bottle.getIndexPath_bottom()); // get inital velocity of center of mass
                 printf("INFO: v_cm_i = %lfi + %lfj\n", bottle.v_cm_i.x, bottle.v_cm_i.y);
                 hist_inital_velocity -> Fill(bottle.v_cm_i.x, bottle.v_cm_i.y, bottle.v_cm_i.getSize());
-
-                // TODO : set dt
-                //dt = (bottle.path_top[bottle.getIndexPath_top()-1].t - bottle.path_top[0].t) / double(n_data);
-                min_y = bottle.getMinY();
             
                 for(int i = 0; i < bottle.getIndexPath_cm(); i++)
                     graph_cm[experiment_no] -> SetPoint(graph_cm[experiment_no]->GetN(), bottle.path_cm[i].x, bottle.path_cm[i].y);
 
-                //printf("dt: %lf, n_data: %d\n", dt, n_data);
                 step = bottle.getIndexPath_cm(); //reset step number
                 do
                 {
-                    //dt = bottle.path_top[step+1].t - bottle.path_top[step].t;
-                    //t = dt*step + bottle.r_cm_i.t;
                     t = bottle.path_top[step].t;
                     x = bottle.r_cm_i.x + bottle.v_cm_i.x * t;
                     y = bottle.r_cm_i.y + bottle.v_cm_i.y * t - g*t*t/2.0;
-
-                    //printf("t: %lf, x: %lf, y: %lf\n", t, x, y);
 
                     path_cm_temp.x = x;
                     path_cm_temp.y = y;
@@ -427,10 +385,11 @@ void BottleFlip()
                     fprintf(fp_record, "%lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf\n", bottle.path_top[step].t, bottle.path_top[step].x, bottle.path_top[step].y, bottle.path_bottom[step].t, bottle.path_bottom[step].x, bottle.path_bottom[step].y, t, x, y);
 
                     graph_cm[experiment_no] -> SetPoint(graph_cm[experiment_no]->GetN(), x, y);
-                    //printf("graph_cm[experiment_no]->GetN(): %d\n", int(graph_cm[experiment_no]->GetN()));
+
                     step++;
 
                 }while(step < bottle.getIndexPath_top());
+                
                 fprintf(fp_record, "-100000, -100000, -100000, -100000, -100000, -100000, -100000, -100000, -100000\n");
 
                 // Get angular velocity
@@ -479,11 +438,7 @@ void BottleFlip()
                     bottle.setW(angular_velocity);
                     
                     graph_w[experiment_no] -> SetPoint(graph_w[experiment_no]->GetN(), (r_cm_1.t + r_cm_2.t)/2.0, angular_velocity.z);
-
-                    //printf("angular velocity: %lf\n", angular_velocity.z);
                 }
-
-                //max_w = graph_w[experiment_no]->GetMaximum();
                 graph_w[experiment_no]-> SetPoint(graph_w[experiment_no]->GetN(), (r_cm_1.t + r_cm_2.t)/2.0, 0);
 
                 // calculus angular displacement
@@ -589,7 +544,6 @@ void BottleFlip()
         hist_angular_displacement -> Draw();
 
         sprintf(graph_name, "/home/lsh/Dropbox/GYPT/graph/angular_displacement_distribution_%s.png",file_name);   
-        //c_angular_displacement -> SaveAs("/home/lsh/Dropbox/GYPT/graph/angular_displacement_distribution_round_success.png");
         c_angular_displacement -> SaveAs(graph_name);
 
         c_hist_w -> cd();
@@ -597,7 +551,6 @@ void BottleFlip()
         hist_angular_velocity -> GetXaxis() -> SetTitle("angular velocity [rad/s]");
         hist_angular_velocity -> GetYaxis() -> SetTitle("number");
         hist_angular_velocity -> Draw();
-        //c_hist_w -> SaveAs("/home/lsh/Dropbox/GYPT/graph/angular_velocity_distribution_round_success.png");
         sprintf(graph_name, "/home/lsh/Dropbox/GYPT/graph/angular_velocity_distribution_%s.png",file_name);
         c_hist_w -> SaveAs(graph_name);
 
@@ -611,7 +564,6 @@ void BottleFlip()
         else
              hist_inital_velocity -> SetMarkerColor(kRed);
         hist_inital_velocity -> Draw();
-        //c_inital_velocity -> SaveAs("/home/lsh/Dropbox/GYPT/graph/inital_velocity_distribution_round_success.png");
         sprintf(graph_name, "/home/lsh/Dropbox/GYPT/graph/inital_velocity_distribution_%s.png",file_name);
         c_inital_velocity -> SaveAs(graph_name);
 
